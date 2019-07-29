@@ -8,6 +8,8 @@ import io.circe.Decoder
 import java.net.URI
 import java.util.Base64
 
+import cats.MonadError
+
 sealed trait KeyType extends Product with Serializable
 
 object KeyType {
@@ -23,10 +25,10 @@ object Use {
   final case class Extension(name: String) extends Use
 }
 
-sealed trait JWKPublicKey extends Product with Serializable {
+sealed trait JWKPublicKey[A <: PublicKey] extends Product with Serializable {
   def id: String
 
-  def publicKey: PublicKey
+  def publicKey[F[_]](implicit M: MonadError[F, Throwable]): F[A]
 
   def use: Option[Use]
 
@@ -36,9 +38,15 @@ sealed trait JWKPublicKey extends Product with Serializable {
 
 object JWKPublicKey {
 
-  case class RSA(id: String, alg: RSA.Algorithm, exponent: BigInt, modulus: BigInt, use: Option[Use], x5u: Option[URI], x5t: Option[String])
-      extends JWKPublicKey {
-    def publicKey: RSAPublicKey = {
+  case class RSA(id: String,
+                 alg: RSA.Algorithm,
+                 exponent: BigInt,
+                 modulus: BigInt,
+                 use: Option[Use],
+                 x5u: Option[URI],
+                 x5t: Option[String])
+      extends JWKPublicKey[RSAPublicKey] {
+    def publicKey[F[_]](implicit M: MonadError[F, Throwable]): F[RSAPublicKey] = M.catchNonFatal {
       val kf = KeyFactory.getInstance("RSA")
       kf.generatePublic(new RSAPublicKeySpec(modulus.bigInteger, exponent.bigInteger)).asInstanceOf[RSAPublicKey]
     }
@@ -56,8 +64,8 @@ object JWKPublicKey {
   }
 
   case class EC(id: String, curve: EC.Algorithm, x: BigInt, y: BigInt, use: Option[Use], x5u: Option[URI], x5t: Option[String])
-      extends JWKPublicKey {
-    def publicKey: ECPublicKey = {
+      extends JWKPublicKey[ECPublicKey] {
+    def publicKey[F[_]](implicit M: MonadError[F, Throwable]): F[ECPublicKey] = M.catchNonFatal {
       val kf    = KeyFactory.getInstance("EC")
       val point = new ECPoint(x.bigInteger, y.bigInteger)
       kf.generatePublic(new ECPublicKeySpec(point, curve.spec)).asInstanceOf[ECPublicKey]
@@ -133,8 +141,8 @@ object JWKPublicKey {
     } yield EC(id, curve, x, y, use, x5u, x5t)
   }
 
-  implicit val publicKeyDecoder: Decoder[JWKPublicKey] = {
+  implicit val publicKeyDecoder: Decoder[JWKPublicKey[_]] = {
     import cats.syntax.functor._
-    rsaPublicKeyDecoder.widen[JWKPublicKey].or(ecPublicKeyDecoder.widen[JWKPublicKey])
+    rsaPublicKeyDecoder.widen[JWKPublicKey[_]].or(ecPublicKeyDecoder.widen[JWKPublicKey[_]])
   }
 }

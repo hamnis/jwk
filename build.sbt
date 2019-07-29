@@ -1,7 +1,14 @@
-inThisBuild(
-  scalaVersion := "2.12.8"
-)
-
+inThisBuild(Seq(
+  scalaVersion := "2.12.8",
+  scalacOptions ++= Seq(
+    "-Ypartial-unification",
+    "-feature",
+    "-language:higherKinds",
+    "-language:implicitConversions",
+    "-unchecked",
+    "-deprecation",
+  )
+))
 
 val core = project.settings(
   libraryDependencies ++= Seq(
