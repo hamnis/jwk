@@ -1,0 +1,4 @@
+.idea/
+target/
+.ensime
+release.sbt
