@@ -6,23 +6,6 @@ import java.security.spec._
 
 import java.net.URI
 
-import cats.MonadError
-
-sealed trait KeyType extends Product with Serializable
-
-object KeyType {
-  final case object EC  extends KeyType
-  final case object RSA extends KeyType
-}
-
-sealed trait Use extends Product with Serializable
-
-object Use {
-  final case object Signature              extends Use
-  final case object Encryption             extends Use
-  final case class Extension(name: String) extends Use
-}
-
 case class JwkSet(keys: Set[Jwk]) {
   def get(id: Jwk.Id): Option[Jwk] =
     keys.find(_.id == id)
@@ -36,31 +19,22 @@ object Jwk {
   case class Id(value: String) extends AnyVal
 
   sealed trait JWKPublicKey[A <: PublicKey] extends Jwk with Product with Serializable {
-    def id: Id
-
-    def publicKey[F[_]](implicit M: MonadError[F, Throwable]): F[A]
-
+    def publicKey: A
     def use: Option[Use]
-
     val x5u: Option[URI]
     val x5t: Option[String]
   }
 
   object JWKPublicKey {
 
-    case class RSA(id: Id,
-                   alg: RSA.Algorithm,
-                   exponent: BigInt,
-                   modulus: BigInt,
-                   use: Option[Use],
-                   x5u: Option[URI],
-                   x5t: Option[String])
-        extends JWKPublicKey[RSAPublicKey] {
-      def publicKey[F[_]](implicit M: MonadError[F, Throwable]): F[RSAPublicKey] = M.catchNonFatal {
-        val kf = KeyFactory.getInstance("RSA")
-        kf.generatePublic(new RSAPublicKeySpec(modulus.bigInteger, exponent.bigInteger)).asInstanceOf[RSAPublicKey]
-      }
-    }
+    case class RSA(
+        id: Id,
+        alg: RSA.Algorithm,
+        publicKey: RSAPublicKey,
+        use: Option[Use],
+        x5u: Option[URI],
+        x5t: Option[String]
+    ) extends JWKPublicKey[RSAPublicKey]
 
     object RSA {
       sealed abstract class Algorithm(val jose: String) extends Product with Serializable
@@ -71,16 +45,16 @@ object Jwk {
         final case object RS512 extends Algorithm("RS512")
         val values: Set[Algorithm] = Set(RS256, RS384, RS512)
       }
+
+      def publicKey(modulus: BigInt, exponent: BigInt): Either[Throwable, RSAPublicKey] =
+        scala.util.control.Exception.nonFatalCatch.either {
+          val kf = KeyFactory.getInstance("RSA")
+          kf.generatePublic(new RSAPublicKeySpec(modulus.bigInteger, exponent.bigInteger)).asInstanceOf[RSAPublicKey]
+        }
     }
 
-    case class EC(id: Id, curve: EC.Algorithm, x: BigInt, y: BigInt, use: Option[Use], x5u: Option[URI], x5t: Option[String])
-        extends JWKPublicKey[ECPublicKey] {
-      def publicKey[F[_]](implicit M: MonadError[F, Throwable]): F[ECPublicKey] = M.catchNonFatal {
-        val kf    = KeyFactory.getInstance("EC")
-        val point = new ECPoint(x.bigInteger, y.bigInteger)
-        kf.generatePublic(new ECPublicKeySpec(point, curve.spec)).asInstanceOf[ECPublicKey]
-      }
-    }
+    case class EC(id: Id, curve: EC.Algorithm, publicKey: ECPublicKey, use: Option[Use], x5u: Option[URI], x5t: Option[String])
+        extends JWKPublicKey[ECPublicKey]
 
     object EC {
       sealed abstract class Algorithm(val jose: String, jce: String) extends Product with Serializable {
@@ -98,6 +72,21 @@ object Jwk {
 
         val values: Set[Algorithm] = Set(P256, P384, P512)
       }
+
+      def publicKey(x: BigInt, y: BigInt, curve: Algorithm): Either[Throwable, ECPublicKey] =
+        scala.util.control.Exception.nonFatalCatch.either {
+          val kf    = KeyFactory.getInstance("EC")
+          val point = new ECPoint(x.bigInteger, y.bigInteger)
+          kf.generatePublic(new ECPublicKeySpec(point, curve.spec)).asInstanceOf[ECPublicKey]
+        }
     }
   }
+}
+
+sealed trait Use extends Product with Serializable
+
+object Use {
+  final case object Signature              extends Use
+  final case object Encryption             extends Use
+  final case class Extension(name: String) extends Use
 }
