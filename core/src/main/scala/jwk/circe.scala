@@ -2,12 +2,10 @@ package jwk
 
 import java.io.ByteArrayInputStream
 import java.net.URI
-import java.security.PublicKey
 import java.security.cert.{CertificateFactory, X509Certificate}
-import java.security.interfaces.ECPublicKey
 import java.util.Base64
 
-import io.circe.{Decoder, DecodingFailure, HCursor}
+import io.circe.{Decoder, DecodingFailure}
 import jwk.Jwk._
 import JWKPublicKey._
 import cats.syntax.functor._
@@ -62,8 +60,7 @@ object circe {
       modulus   <- c.downField("n").as[BigInt]
       x509      <- x509Decoder(c)
       publicKey <- RSA.publicKey(modulus, exponent).left.map(e => DecodingFailure.fromThrowable(e, c.history))
-      validPk   <- validate(x509, c, publicKey)
-    } yield RSA(id, alg, validPk, use, x509)
+    } yield RSA(id, alg, publicKey, use, x509)
   }
 
   implicit val ecPublicKeyDecoder: Decoder[EC] = Decoder.instance { c =>
@@ -76,16 +73,7 @@ object circe {
       y         <- c.downField("y").as[BigInt]
       x509      <- x509Decoder(c)
       publicKey <- EC.publicKey(x, y, curve).left.map(e => DecodingFailure.fromThrowable(e, c.history))
-      validPk   <- validate(x509, c, publicKey)
-    } yield EC(id, curve, validPk, use, x509)
-  }
-
-  private def validate[K <: PublicKey](x509: Option[X509], cursor: HCursor, publicKey: K): Decoder.Result[K] = {
-    x509
-      .map(cert => cert.validateHash(publicKey))
-      .getOrElse(Right(publicKey))
-      .left
-      .map(e => DecodingFailure.fromThrowable(e, cursor.history))
+    } yield EC(id, curve, publicKey, use, x509)
   }
 
   implicit val publicKeyDecoder: Decoder[JWKPublicKey[_]] = {
