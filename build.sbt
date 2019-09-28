@@ -27,4 +27,11 @@ val http4s = project.dependsOn(core).settings(
   )
 )
 
+val sttp = project.dependsOn(core).settings(
+  libraryDependencies ++= Seq(
+    "com.softwaremill.sttp" %% "core" % "1.6.7",
+    "org.scalatest" %% "scalatest" % "3.0.8" % Test
+  )
+)
+
 val jwk = project.in(file(".")).aggregate(core, http4s)
