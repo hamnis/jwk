@@ -6,6 +6,7 @@ import java.util.Base64
 import io.circe.Decoder
 import jwk.Jwk._
 import JWKPublicKey._
+import cats.syntax.functor._
 
 object circe {
   implicit val uriDecoder: Decoder[URI] = Decoder[String].map(URI.create)
@@ -59,7 +60,10 @@ object circe {
   }
 
   implicit val publicKeyDecoder: Decoder[JWKPublicKey[_]] = {
-    import cats.syntax.functor._
     rsaPublicKeyDecoder.widen[JWKPublicKey[_]].or(ecPublicKeyDecoder.widen[JWKPublicKey[_]])
   }
+
+  implicit val jwkDecoder: Decoder[Jwk] = publicKeyDecoder.widen[Jwk]
+
+  implicit val jwkSetDecoder: Decoder[JwkSet] = Decoder.instance(c => c.downField("keys").as[Set[Jwk]].map(JwkSet))
 }

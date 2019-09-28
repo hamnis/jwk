@@ -1,5 +1,5 @@
 inThisBuild(Seq(
-  scalaVersion := "2.12.8",
+  scalaVersion := "2.12.10",
   scalacOptions ++= Seq(
     "-Ypartial-unification",
     "-feature",
@@ -12,8 +12,19 @@ inThisBuild(Seq(
 
 val core = project.settings(
   libraryDependencies ++= Seq(
-    "io.circe"  %% "circe-core" % "0.11.1",
-    "io.circe"  %% "circe-parser" % "0.11.1",
+    "io.circe"  %% "circe-core" % "0.12.1",
+    "io.circe"  %% "circe-parser" % "0.12.1",
     "org.scalatest" %% "scalatest" % "3.0.8" % Test
   )
 )
+
+val http4s = project.dependsOn(core).settings(
+  libraryDependencies ++= Seq(
+    "org.http4s" %% "http4s-client" % "0.21.0-M5",
+    "org.http4s" %% "http4s-circe" % "0.21.0-M5",
+    "org.http4s" %% "http4s-blaze-client" % "0.21.0-M5",
+    "org.scalatest" %% "scalatest" % "3.0.8" % Test
+  )
+)
+
+val jwk = project.in(file(".")).aggregate(core, http4s)

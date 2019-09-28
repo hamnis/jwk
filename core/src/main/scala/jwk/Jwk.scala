@@ -23,9 +23,14 @@ object Use {
   final case class Extension(name: String) extends Use
 }
 
-case class JwkSet(keys: Set[Jwk])
+case class JwkSet(keys: Set[Jwk]) {
+  def get(id: Jwk.Id): Option[Jwk] =
+    keys.find(_.id == id)
+}
 
-sealed trait Jwk
+sealed trait Jwk {
+  def id: Jwk.Id
+}
 
 object Jwk {
   case class Id(value: String) extends AnyVal
@@ -50,7 +55,7 @@ object Jwk {
                    use: Option[Use],
                    x5u: Option[URI],
                    x5t: Option[String])
-      extends JWKPublicKey[RSAPublicKey] {
+        extends JWKPublicKey[RSAPublicKey] {
       def publicKey[F[_]](implicit M: MonadError[F, Throwable]): F[RSAPublicKey] = M.catchNonFatal {
         val kf = KeyFactory.getInstance("RSA")
         kf.generatePublic(new RSAPublicKeySpec(modulus.bigInteger, exponent.bigInteger)).asInstanceOf[RSAPublicKey]
@@ -69,7 +74,7 @@ object Jwk {
     }
 
     case class EC(id: Id, curve: EC.Algorithm, x: BigInt, y: BigInt, use: Option[Use], x5u: Option[URI], x5t: Option[String])
-      extends JWKPublicKey[ECPublicKey] {
+        extends JWKPublicKey[ECPublicKey] {
       def publicKey[F[_]](implicit M: MonadError[F, Throwable]): F[ECPublicKey] = M.catchNonFatal {
         val kf    = KeyFactory.getInstance("EC")
         val point = new ECPoint(x.bigInteger, y.bigInteger)
@@ -79,7 +84,7 @@ object Jwk {
 
     object EC {
       sealed abstract class Algorithm(val jose: String, jce: String) extends Product with Serializable {
-        private[jwk] def spec: ECParameterSpec = {
+        private[jwk] lazy val spec: ECParameterSpec = {
           val params = AlgorithmParameters.getInstance("EC")
           params.init(new ECGenParameterSpec(jce))
           params.getParameterSpec(classOf[ECParameterSpec])
