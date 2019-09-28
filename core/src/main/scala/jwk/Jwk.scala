@@ -4,8 +4,6 @@ import java.security._
 import java.security.interfaces._
 import java.security.spec._
 
-import java.net.URI
-
 case class JwkSet(keys: Set[Jwk]) {
   def get(id: Jwk.Id): Option[Jwk] =
     keys.find(_.id == id)
@@ -21,19 +19,17 @@ object Jwk {
   sealed trait JWKPublicKey[A <: PublicKey] extends Jwk with Product with Serializable {
     def publicKey: A
     def use: Option[Use]
-    val x5u: Option[URI]
-    val x5t: Option[String]
+    def x509: Option[X509]
   }
 
   object JWKPublicKey {
 
     case class RSA(
         id: Id,
-        alg: RSA.Algorithm,
+        alg: Option[RSA.Algorithm],
         publicKey: RSAPublicKey,
         use: Option[Use],
-        x5u: Option[URI],
-        x5t: Option[String]
+        x509: Option[X509]
     ) extends JWKPublicKey[RSAPublicKey]
 
     object RSA {
@@ -53,7 +49,7 @@ object Jwk {
         }
     }
 
-    case class EC(id: Id, curve: EC.Algorithm, publicKey: ECPublicKey, use: Option[Use], x5u: Option[URI], x5t: Option[String])
+    case class EC(id: Id, alg: EC.Algorithm, publicKey: ECPublicKey, use: Option[Use], x509: Option[X509])
         extends JWKPublicKey[ECPublicKey]
 
     object EC {
@@ -89,4 +85,18 @@ object Use {
   final case object Signature              extends Use
   final case object Encryption             extends Use
   final case class Extension(name: String) extends Use
+}
+
+sealed trait KeyOps extends Product with Serializable
+
+object KeyOps {
+  final case object Sign               extends KeyOps
+  final case object Verify             extends KeyOps
+  final case object Encrypt            extends KeyOps
+  final case object Decrypt            extends KeyOps
+  final case object WrapKey            extends KeyOps
+  final case object UnwrapKey          extends KeyOps
+  final case object DeriveKey          extends KeyOps
+  final case object DeriveBits         extends KeyOps
+  final case class Other(name: String) extends KeyOps
 }

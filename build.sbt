@@ -12,6 +12,7 @@ inThisBuild(Seq(
 
 val core = project.settings(
   libraryDependencies ++= Seq(
+    "org.scodec" %% "scodec-bits" % "1.1.12",
     "io.circe"  %% "circe-core" % "0.12.1",
     "io.circe"  %% "circe-parser" % "0.12.1",
     "org.scalatest" %% "scalatest" % "3.0.8" % Test

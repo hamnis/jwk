@@ -6,7 +6,7 @@ import com.softwaremill.sttp.monadSyntax._
 import io.circe.jawn
 import jwk.circe._
 
-class SttpJwkProvider[F[_], -S] private (implicit backend: SttpBackend[F, S]) extends JwkProvider[F] {
+class SttpJwkProvider[F[_], +S] private (implicit backend: SttpBackend[F, S]) extends JwkProvider[F] {
   private implicit val monad: MonadError[F] = backend.responseMonad
   override def load(uri: URI): F[JwkSet] = {
     val req      = sttp.get(Uri(uri))
