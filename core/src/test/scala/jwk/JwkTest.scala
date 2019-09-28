@@ -2,7 +2,7 @@ package jwk
 
 import org.scalatest._
 import io.circe.jawn._
-import cats.instances.either._
+import jwk.circe._
 
 class JwkTest extends FunSuite {
   test("rsa key from RFC") {
@@ -18,7 +18,6 @@ class JwkTest extends FunSuite {
 
     val value = decode[JWKPublicKey.RSA](json)
     assert(value.isRight)
-    println(value.right.get.publicKey)
   }
 
   test("Elliptic Curve from RFC") {
@@ -33,8 +32,6 @@ class JwkTest extends FunSuite {
       """.stripMargin
 
     val value = decode[JWKPublicKey.EC](json)
-    println(value)
     assert(value.isRight)
-    println(value.right.get.publicKey)
   }
 }
