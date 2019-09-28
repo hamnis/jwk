@@ -4,7 +4,8 @@ import java.net.URI
 import java.util.Base64
 
 import io.circe.Decoder
-import jwk.JWKPublicKey.{EC, RSA}
+import jwk.Jwk._
+import JWKPublicKey._
 
 object circe {
   implicit val uriDecoder: Decoder[URI] = Decoder[String].map(URI.create)
@@ -34,7 +35,7 @@ object circe {
   implicit val rsaPublicKeyDecoder: Decoder[RSA] = Decoder.instance { c =>
     for {
       _        <- c.downField("kty").as[KeyType](keyTypeDecoder.ensure(_ == KeyType.RSA, "Not an RSA key type"))
-      id       <- c.downField("kid").as[String]
+      id       <- c.downField("kid").as[String].map(Id)
       alg      <- c.downField("alg").as[RSA.Algorithm]
       use      <- c.downField("use").as[Option[Use]]
       exponent <- c.downField("e").as[BigInt]
@@ -47,7 +48,7 @@ object circe {
   implicit val ecPublicKeyDecoder: Decoder[EC] = Decoder.instance { c =>
     for {
       _     <- c.downField("kty").as[KeyType](keyTypeDecoder.ensure(_ == KeyType.EC, "Not an EC key type"))
-      id    <- c.downField("kid").as[String]
+      id    <- c.downField("kid").as[String].map(Id)
       curve <- c.downField("crv").as[EC.Algorithm]
       use   <- c.downField("use").as[Option[Use]]
       x     <- c.downField("x").as[BigInt]

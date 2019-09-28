@@ -16,7 +16,7 @@ class JwkTest extends FunSuite {
         | "kid":"2011-04-29"}
       """.stripMargin
 
-    val value = decode[JWKPublicKey.RSA](json)
+    val value = decode[Jwk.JWKPublicKey.RSA](json)
     assert(value.isRight)
   }
 
@@ -31,7 +31,7 @@ class JwkTest extends FunSuite {
         | "kid":"1"}
       """.stripMargin
 
-    val value = decode[JWKPublicKey.EC](json)
+    val value = decode[Jwk.JWKPublicKey.EC](json)
     assert(value.isRight)
   }
 }
