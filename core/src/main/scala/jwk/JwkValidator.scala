@@ -11,8 +11,8 @@ object JwkValidator {
   type Result[A] = Either[ValidationError, A]
   def validate(jwk: Jwk): Result[Jwk] = {
     jwk match {
-      case rsa: Jwk.JWKPublicKey.RSA => validate(rsa.x509, rsa.publicKey).map(_ => rsa)
-      case ec: Jwk.JWKPublicKey.EC   => validate(ec.x509, ec.publicKey).map(_ => ec)
+      case rsa: Jwk.RSA => validate(rsa.x509, rsa.publicKey).map(_ => rsa)
+      case ec: Jwk.EC   => validate(ec.x509, ec.publicKey).map(_ => ec)
     }
   }
 

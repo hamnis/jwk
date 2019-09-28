@@ -22,16 +22,13 @@ val core = project.settings(
 val http4s = project.dependsOn(core).settings(
   libraryDependencies ++= Seq(
     "org.http4s" %% "http4s-client" % "0.21.0-M5",
-    "org.http4s" %% "http4s-circe" % "0.21.0-M5",
-    "org.http4s" %% "http4s-blaze-client" % "0.21.0-M5",
-    "org.scalatest" %% "scalatest" % "3.0.8" % Test
+    "org.http4s" %% "http4s-circe" % "0.21.0-M5"
   )
 )
 
 val sttp = project.dependsOn(core).settings(
   libraryDependencies ++= Seq(
-    "com.softwaremill.sttp" %% "core" % "1.6.7",
-    "org.scalatest" %% "scalatest" % "3.0.8" % Test
+    "com.softwaremill.sttp" %% "core" % "1.6.7"
   )
 )
 
