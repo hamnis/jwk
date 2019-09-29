@@ -130,11 +130,9 @@ object circe {
     } yield (pk, priv)
   }
 
-  implicit val publicKeyDecoder: Decoder[JWKPublicKey[_]] = {
-    rsaDecoder.widen[JWKPublicKey[_]].or(ecDecoder.widen[JWKPublicKey[_]])
+  implicit val jwkDecoder: Decoder[Jwk] = {
+    rsaDecoder.widen[Jwk].or(ecDecoder.widen[Jwk])
   }
-
-  implicit val jwkDecoder: Decoder[Jwk] = publicKeyDecoder.widen[Jwk]
 
   implicit val jwkSetDecoder: Decoder[JwkSet] = Decoder.instance(c => c.downField("keys").as[Set[Jwk]].map(JwkSet))
 }

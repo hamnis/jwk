@@ -1,29 +1,31 @@
 package jwk
 
-import java.security._
 import java.security.interfaces._
 
 case class JwkSet(keys: Set[Jwk]) {
   def get(id: Jwk.Id): Option[Jwk] =
     keys.find(_.id == id)
+
+  def getRSA(id: Jwk.Id): Option[Jwk.RSA] =
+    get(id).flatMap {
+      case rsa: Jwk.RSA => Some(rsa)
+      case _            => None
+    }
+  def getEllipticCurve(id: Jwk.Id): Option[Jwk.EllipticCurve] =
+    get(id).flatMap {
+      case ec: Jwk.EllipticCurve => Some(ec)
+      case _                     => None
+    }
 }
 
 sealed trait Jwk extends Product with Serializable {
   def id: Jwk.Id
+  def use: Option[Use]
+  def x509: Option[X509]
 }
 
 object Jwk {
   case class Id(value: String) extends AnyVal
-
-  sealed trait JWKPrivateKey[A <: PrivateKey] extends Jwk {
-    def privateKey: Option[A]
-  }
-
-  sealed trait JWKPublicKey[A <: PublicKey] extends Jwk {
-    def publicKey: A
-    def use: Option[Use]
-    def x509: Option[X509]
-  }
 
   case class RSA(
       id: Id,
@@ -32,8 +34,7 @@ object Jwk {
       privateKey: Option[RSAPrivateKey],
       use: Option[Use],
       x509: Option[X509]
-  ) extends JWKPublicKey[RSAPublicKey]
-      with JWKPrivateKey[RSAPrivateKey]
+  ) extends Jwk
 
   object RSA {
     sealed abstract class Algorithm(val jose: String) extends Product with Serializable
@@ -53,8 +54,7 @@ object Jwk {
       privateKey: Option[ECPrivateKey],
       use: Option[Use],
       x509: Option[X509]
-  ) extends JWKPublicKey[ECPublicKey]
-      with JWKPrivateKey[ECPrivateKey]
+  ) extends Jwk
 
   object EllipticCurve {
     sealed abstract class Curve(val jose: String, val jce: String) extends Product with Serializable
