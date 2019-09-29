@@ -2,6 +2,8 @@ package jwk
 
 import java.security.interfaces._
 
+import javax.crypto.SecretKey
+
 case class JwkSet(keys: Set[Jwk]) {
   def get(id: Jwk.Id): Option[Jwk] =
     keys.find(_.id == id)
@@ -21,7 +23,6 @@ case class JwkSet(keys: Set[Jwk]) {
 sealed trait Jwk extends Product with Serializable {
   def id: Jwk.Id
   def use: Option[Use]
-  def x509: Option[X509]
 }
 
 object Jwk {
@@ -65,6 +66,18 @@ object Jwk {
       final case object P512 extends Curve("P-512", "secp512r1")
 
       val values: Set[Curve] = Set(P256, P384, P512)
+    }
+  }
+
+  case class HMac(id: Jwk.Id, algorithm: HMac.Algorithm, key: SecretKey, use: Option[Use]) extends Jwk
+  object HMac {
+    sealed abstract class Algorithm(val jose: String, val jce: String) extends Product with Serializable
+
+    object Algorithm {
+      final case object HS256 extends Algorithm("HS256", "HmacSha256")
+      final case object HS384 extends Algorithm("HS384", "HmacSha384")
+      final case object HS512 extends Algorithm("HS512", "HmacSha512")
+      val values: Set[Algorithm] = Set(HS256, HS384, HS512)
     }
   }
 }

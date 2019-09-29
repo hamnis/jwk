@@ -15,23 +15,29 @@ import java.security.spec.{
   RSAPrivateCrtKeySpec,
   RSAPublicKeySpec
 }
-import java.util.Base64
 
 import io.circe.{Decoder, DecodingFailure, HCursor}
 import jwk.Jwk._
 import cats.implicits._
-import scodec.bits.ByteVector
+import javax.crypto.spec.SecretKeySpec
+import scodec.bits.{Bases, ByteVector}
 
 import scala.util.Try
 
 object circe {
-  implicit val byteVectorDecoder: Decoder[ByteVector] = Decoder[String].emap(s => ByteVector.fromBase64Descriptive(s))
+  implicit val byteVectorDecoder: Decoder[ByteVector] =
+    Decoder[String].emap(
+      s => ByteVector.fromBase64Descriptive(s, Bases.Alphabets.Base64Url).orElse(ByteVector.fromBase64Descriptive(s))
+    )
 
   implicit val uriDecoder: Decoder[URI] = Decoder[String].map(URI.create)
   implicit val BigIntBigEndianDecoder: Decoder[BigInteger] =
-    Decoder[String].map(n => BigInt(1, Base64.getUrlDecoder.decode(n)).bigInteger)
+    Decoder[ByteVector].map(n => BigInt(1, n.toArray).bigInteger)
   implicit val rsaAlgDecoder: Decoder[RSA.Algorithm] = Decoder[String].emap { alg =>
     RSA.Algorithm.values.find(_.jose == alg).toRight(s"$alg is not supported")
+  }
+  implicit val hmacAlgDecoder: Decoder[HMac.Algorithm] = Decoder[String].emap { alg =>
+    HMac.Algorithm.values.find(_.jose == alg).toRight(s"$alg is not supported")
   }
 
   def tryDecode[A](c: HCursor, tried: Try[A]): Decoder.Result[A] =
@@ -130,8 +136,19 @@ object circe {
     } yield (pk, priv)
   }
 
+  implicit val hmacDecoder: Decoder[HMac] = Decoder.instance { c =>
+    for {
+      _          <- c.downField("kty").as(Decoder.decodeString.ensure(_ == "oct", "Not an 'oct' key type"))
+      id         <- c.downField("kid").as[String].map(Id)
+      alg        <- c.downField("alg").as[HMac.Algorithm]
+      use        <- c.downField("use").as[Option[Use]]
+      key        <- c.downField("k").as[ByteVector]
+      decodedKey <- tryDecode(c, Try { new SecretKeySpec(key.toArray, alg.jce) })
+    } yield HMac(id, alg, decodedKey, use)
+  }
+
   implicit val jwkDecoder: Decoder[Jwk] = {
-    rsaDecoder.widen[Jwk].or(ecDecoder.widen[Jwk])
+    rsaDecoder.widen[Jwk].or(ecDecoder.widen[Jwk]).or(hmacDecoder.widen[Jwk])
   }
 
   implicit val jwkSetDecoder: Decoder[JwkSet] = Decoder.instance(c => c.downField("keys").as[Set[Jwk]].map(JwkSet))

@@ -136,4 +136,19 @@ class JwkTest extends FunSuite {
     assert(value.isRight)
     assert(value.right.get.privateKey.isDefined)
   }
+  test("HMac256 from Nimbus JOSE Website") {
+    val json =
+      """
+        |{
+        |  "kty" : "oct",
+        |  "kid" : "0afee142-a0af-4410-abcc-9f2d44ff45b5",
+        |  "alg" : "HS256",
+        |  "k"   : "FdFYFzERwC2uCBB46pZQi4GG85LujR8obt-KWRBICVQ"
+        |}
+        |""".stripMargin
+
+    val value = decode[Jwk.HMac](json)
+    println(value)
+    assert(value.isRight)
+  }
 }
