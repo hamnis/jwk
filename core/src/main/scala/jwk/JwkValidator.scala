@@ -10,8 +10,8 @@ object JwkValidator {
   type Result[A] = Either[ValidationError, A]
   def validate(jwk: Jwk): Result[Jwk] = {
     jwk match {
-      case rsa: Jwk.RSA => validate(rsa.x509, rsa.publicKey).map(_ => rsa)
-      case ec: Jwk.EllipticCurve   => validate(ec.x509, ec.publicKey).map(_ => ec)
+      case rsa: Jwk.RSA          => validate(rsa.x509, rsa.publicKey).map(_ => rsa)
+      case ec: Jwk.EllipticCurve => validate(ec.x509, ec.publicKey).map(_ => ec)
     }
   }
 
@@ -25,7 +25,7 @@ object JwkValidator {
     val encoded  = ByteVector(pk.getEncoded)
     val sha1PK   = encoded.digest("SHA-1")
     val sha256PK = encoded.digest("SHA-256")
-    (x509.sha1.forall(_ == sha1PK), x509.sha256.forall(_ == sha256PK)) match {
+    (x509.sha1.forall(s => ByteEquality.equal(s, sha1PK)), x509.sha256.forall(s => ByteEquality.equal(s, sha256PK))) match {
       case (true, true)   => Right(pk)
       case (false, true)  => Left(ValidationError("Did not match SHA-1 Hash"))
       case (true, false)  => Left(ValidationError("Did not match SHA-256 Hash"))
