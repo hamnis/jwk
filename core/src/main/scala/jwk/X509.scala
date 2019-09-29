@@ -1,8 +1,7 @@
 package jwk
 
 import java.net.URI
-import java.security.PublicKey
-import java.security.cert.{CertificateException, X509Certificate}
+import java.security.cert.X509Certificate
 
 import scodec.bits.ByteVector
 

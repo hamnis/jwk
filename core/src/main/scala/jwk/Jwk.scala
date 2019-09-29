@@ -77,7 +77,7 @@ object Use {
   final case class Extension(name: String) extends Use
 }
 
-sealed trait KeyOps extends Product with Serializable
+/*sealed trait KeyOps extends Product with Serializable
 
 object KeyOps {
   final case object Sign               extends KeyOps
@@ -89,4 +89,4 @@ object KeyOps {
   final case object DeriveKey          extends KeyOps
   final case object DeriveBits         extends KeyOps
   final case class Other(name: String) extends KeyOps
-}
+}*/
