@@ -1,5 +1,6 @@
 package jwk
 
+import java.math.BigInteger
 import java.security._
 import java.security.interfaces._
 import java.security.spec._
@@ -47,16 +48,17 @@ object Jwk {
       final case object RS512 extends Algorithm("RS512")
       val values: Set[Algorithm] = Set(RS256, RS384, RS512)
     }
-
-    def publicKey(modulus: BigInt, exponent: BigInt): Either[Throwable, RSAPublicKey] =
-      scala.util.control.Exception.nonFatalCatch.either {
-        val kf = KeyFactory.getInstance("RSA")
-        kf.generatePublic(new RSAPublicKeySpec(modulus.bigInteger, exponent.bigInteger)).asInstanceOf[RSAPublicKey]
-      }
   }
 
-  case class EC(id: Id, curve: EC.Curve, publicKey: ECPublicKey, use: Option[Use], x509: Option[X509])
-      extends JWKPublicKey[ECPublicKey]
+  case class EC(
+      id: Id,
+      curve: EC.Curve,
+      publicKey: ECPublicKey,
+      privateKey: Option[ECPrivateKey],
+      use: Option[Use],
+      x509: Option[X509]
+  ) extends JWKPublicKey[ECPublicKey]
+      with JWKPrivateKey[ECPrivateKey]
 
   object EC {
     sealed abstract class Curve(val jose: String, jce: String) extends Product with Serializable {
@@ -74,13 +76,6 @@ object Jwk {
 
       val values: Set[Curve] = Set(P256, P384, P512)
     }
-
-    def publicKey(x: BigInt, y: BigInt, curve: Curve): Either[Throwable, ECPublicKey] =
-      scala.util.control.Exception.nonFatalCatch.either {
-        val kf    = KeyFactory.getInstance("EC")
-        val point = new ECPoint(x.bigInteger, y.bigInteger)
-        kf.generatePublic(new ECPublicKeySpec(point, curve.spec)).asInstanceOf[ECPublicKey]
-      }
   }
 }
 
