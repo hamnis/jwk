@@ -2,6 +2,7 @@ package jwk
 
 import java.security.PublicKey
 
+import jwk.internal.ByteEquality
 import scodec.bits.ByteVector
 
 case class ValidationError(message: String)

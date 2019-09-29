@@ -1,4 +1,4 @@
-package jwk;
+package jwk.internal;
 
 import scodec.bits.ByteVector;
 
