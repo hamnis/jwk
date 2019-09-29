@@ -11,7 +11,7 @@ object JwkValidator {
   def validate(jwk: Jwk): Result[Jwk] = {
     jwk match {
       case rsa: Jwk.RSA => validate(rsa.x509, rsa.publicKey).map(_ => rsa)
-      case ec: Jwk.EC   => validate(ec.x509, ec.publicKey).map(_ => ec)
+      case ec: Jwk.EllipticCurve   => validate(ec.x509, ec.publicKey).map(_ => ec)
     }
   }
 

@@ -31,7 +31,7 @@ class JwkTest extends FunSuite {
         | "kid":"1"}
       """.stripMargin
 
-    val value = decode[Jwk.EC](json)
+    val value = decode[Jwk.EllipticCurve](json)
     assert(value.isRight)
   }
 

@@ -46,9 +46,9 @@ object Jwk {
     }
   }
 
-  case class EC(
+  case class EllipticCurve(
       id: Id,
-      curve: EC.Curve,
+      curve: EllipticCurve.Curve,
       publicKey: ECPublicKey,
       privateKey: Option[ECPrivateKey],
       use: Option[Use],
@@ -56,7 +56,7 @@ object Jwk {
   ) extends JWKPublicKey[ECPublicKey]
       with JWKPrivateKey[ECPrivateKey]
 
-  object EC {
+  object EllipticCurve {
     sealed abstract class Curve(val jose: String, val jce: String) extends Product with Serializable
 
     object Curve {

@@ -6,7 +6,15 @@ import java.net.URI
 import java.security.{AlgorithmParameters, KeyFactory}
 import java.security.cert.{CertificateFactory, X509Certificate}
 import java.security.interfaces.{ECPrivateKey, ECPublicKey, RSAPrivateKey, RSAPublicKey}
-import java.security.spec._
+import java.security.spec.{
+  ECGenParameterSpec,
+  ECParameterSpec,
+  ECPoint,
+  ECPrivateKeySpec,
+  ECPublicKeySpec,
+  RSAPrivateCrtKeySpec,
+  RSAPublicKeySpec
+}
 import java.util.Base64
 
 import io.circe.{Decoder, DecodingFailure, HCursor}
@@ -35,8 +43,8 @@ object circe {
     case e     => Use.Extension(e)
   }
 
-  implicit val curveDecoder: Decoder[EC.Curve] = Decoder[String].emap { alg =>
-    EC.Curve.values.find(_.jose == alg).toRight(s"$alg is not supported")
+  implicit val curveDecoder: Decoder[EllipticCurve.Curve] = Decoder[String].emap { alg =>
+    EllipticCurve.Curve.values.find(_.jose == alg).toRight(s"$alg is not supported")
   }
 
   implicit val x509CertificateDecoder: Decoder[X509Certificate] =
@@ -92,18 +100,18 @@ object circe {
     } yield RSA(id, alg, rsa._1, rsa._2, use, x509)
   }
 
-  implicit val ecDecoder: Decoder[EC] = Decoder.instance { c =>
+  implicit val ecDecoder: Decoder[EllipticCurve] = Decoder.instance { c =>
     for {
       _     <- c.downField("kty").as(Decoder.decodeString.ensure(_ == "EC", "Not an EC key type"))
       id    <- c.downField("kid").as[String].map(Id)
-      curve <- c.downField("crv").as[EC.Curve]
+      curve <- c.downField("crv").as[EllipticCurve.Curve]
       use   <- c.downField("use").as[Option[Use]]
       ec    <- ec(c, curve)
       x509  <- x509Decoder(c)
-    } yield EC(id, curve, ec._1, ec._2, use, x509)
+    } yield EllipticCurve(id, curve, ec._1, ec._2, use, x509)
   }
 
-  def ec(c: HCursor, curve: EC.Curve): Decoder.Result[(ECPublicKey, Option[ECPrivateKey])] = {
+  def ec(c: HCursor, curve: EllipticCurve.Curve): Decoder.Result[(ECPublicKey, Option[ECPrivateKey])] = {
     for {
       x     <- c.downField("x").as[BigInteger]
       y     <- c.downField("y").as[BigInteger]
