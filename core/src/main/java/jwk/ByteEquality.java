@@ -39,6 +39,9 @@ public abstract class ByteEquality {
     }
 
     public static boolean equal(ByteVector a, ByteVector b) {
-        return equal(a.toArray(), b.toArray()) == 1;
+        if (a.size() == b.size()) {
+            return equal(a.toArray(), b.toArray()) == 1;
+        }
+        return false;
     }
 }
