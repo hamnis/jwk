@@ -3,10 +3,10 @@ package jwk
 import java.io.ByteArrayInputStream
 import java.math.BigInteger
 import java.net.URI
-import java.security.KeyFactory
+import java.security.{AlgorithmParameters, KeyFactory}
 import java.security.cert.{CertificateFactory, X509Certificate}
 import java.security.interfaces.{ECPrivateKey, ECPublicKey, RSAPrivateKey, RSAPublicKey}
-import java.security.spec.{ECPoint, ECPrivateKeySpec, ECPublicKeySpec, RSAPrivateCrtKeySpec, RSAPublicKeySpec}
+import java.security.spec._
 import java.util.Base64
 
 import io.circe.{Decoder, DecodingFailure, HCursor}
@@ -110,9 +110,14 @@ object circe {
       d     <- c.downField("d").as[Option[BigInteger]]
       point = new ECPoint(x, y)
       kf    <- tryDecode(c, Try { KeyFactory.getInstance("EC") })
-      pk    <- tryDecode(c, Try { kf.generatePublic(new ECPublicKeySpec(point, curve.spec)).asInstanceOf[ECPublicKey] })
+      spec <- tryDecode(c, Try {
+               val params = AlgorithmParameters.getInstance("EC")
+               params.init(new ECGenParameterSpec(curve.jce))
+               params.getParameterSpec(classOf[ECParameterSpec])
+             })
+      pk <- tryDecode(c, Try { kf.generatePublic(new ECPublicKeySpec(point, spec)).asInstanceOf[ECPublicKey] })
       priv <- tryDecode(c, Try {
-               d.map(priv => kf.generatePrivate(new ECPrivateKeySpec(priv, curve.spec)).asInstanceOf[ECPrivateKey])
+               d.map(priv => kf.generatePrivate(new ECPrivateKeySpec(priv, spec)).asInstanceOf[ECPrivateKey])
              })
     } yield (pk, priv)
   }

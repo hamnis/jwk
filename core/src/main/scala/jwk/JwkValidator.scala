@@ -1,7 +1,6 @@
 package jwk
 
 import java.security.PublicKey
-import java.security.cert.CertificateException
 
 import scodec.bits.ByteVector
 

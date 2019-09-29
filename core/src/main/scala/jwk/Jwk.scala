@@ -1,11 +1,7 @@
 package jwk
 
-import java.math.BigInteger
 import java.security._
 import java.security.interfaces._
-import java.security.spec._
-
-import io.circe.Json
 
 case class JwkSet(keys: Set[Jwk]) {
   def get(id: Jwk.Id): Option[Jwk] =
@@ -61,13 +57,7 @@ object Jwk {
       with JWKPrivateKey[ECPrivateKey]
 
   object EC {
-    sealed abstract class Curve(val jose: String, jce: String) extends Product with Serializable {
-      private[jwk] lazy val spec: ECParameterSpec = {
-        val params = AlgorithmParameters.getInstance("EC")
-        params.init(new ECGenParameterSpec(jce))
-        params.getParameterSpec(classOf[ECParameterSpec])
-      }
-    }
+    sealed abstract class Curve(val jose: String, val jce: String) extends Product with Serializable
 
     object Curve {
       final case object P256 extends Curve("P-256", "secp256r1")
