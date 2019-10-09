@@ -29,9 +29,9 @@ public abstract class ByteEquality {
      * @param c a byte[]
      * @return 1 if b and c are equal, 0 otherwise.
      */
-    public static int equal(byte[] b, byte[] c) {
+    public static int equal(byte[] b, byte[] c, int length) {
         int result = 0;
-        for (int i = 0; i < 32; i++) {
+        for (int i = 0; i < length; i++) {
             result |= b[i] ^ c[i];
         }
 
@@ -40,7 +40,7 @@ public abstract class ByteEquality {
 
     public static boolean equal(ByteVector a, ByteVector b) {
         if (a.size() == b.size()) {
-            return equal(a.toArray(), b.toArray()) == 1;
+            return equal(a.toArray(), b.toArray(), (int) a.size()) == 1;
         }
         return false;
     }
