@@ -5,18 +5,11 @@ import java.math.BigInteger
 import java.net.URI
 import java.security.{AlgorithmParameters, KeyFactory}
 import java.security.cert.{CertificateFactory, X509Certificate}
-import java.security.interfaces.{ECPrivateKey, ECPublicKey, RSAPrivateKey, RSAPublicKey}
-import java.security.spec.{
-  ECGenParameterSpec,
-  ECParameterSpec,
-  ECPoint,
-  ECPrivateKeySpec,
-  ECPublicKeySpec,
-  RSAPrivateCrtKeySpec,
-  RSAPublicKeySpec
-}
+import java.security.interfaces.{ECPrivateKey, ECPublicKey, RSAPrivateCrtKey, RSAPrivateKey, RSAPublicKey}
+import java.security.spec.{ECGenParameterSpec, ECParameterSpec, ECPoint, ECPrivateKeySpec, ECPublicKeySpec, RSAPrivateCrtKeySpec, RSAPublicKeySpec}
 
-import io.circe.{Decoder, DecodingFailure, HCursor}
+import io.circe._
+import io.circe.syntax._
 import jwk.Jwk._
 import cats.implicits._
 import javax.crypto.spec.SecretKeySpec
@@ -25,20 +18,30 @@ import scodec.bits.{Bases, ByteVector}
 import scala.util.Try
 
 object circe {
-  implicit val byteVectorDecoder: Decoder[ByteVector] =
-    Decoder[String].emap(
-      s => ByteVector.fromBase64Descriptive(s, Bases.Alphabets.Base64Url).orElse(ByteVector.fromBase64Descriptive(s))
+  implicit val byteVectorDecoder: Codec[ByteVector] =
+    Codec.from(
+      Decoder[String].emap(
+        s => ByteVector.fromBase64Descriptive(s, Bases.Alphabets.Base64Url).orElse(ByteVector.fromBase64Descriptive(s))
+      ),
+      Encoder[String].contramap(_.toBase64(Bases.Alphabets.Base64Url))
     )
 
-  implicit val uriDecoder: Decoder[URI] = Decoder[String].map(URI.create)
-  implicit val BigIntBigEndianDecoder: Decoder[BigInteger] =
-    Decoder[ByteVector].map(n => BigInt(1, n.toArray).bigInteger)
-  implicit val rsaAlgDecoder: Decoder[RSA.Algorithm] = Decoder[String].emap { alg =>
-    RSA.Algorithm.values.find(_.jose == alg).toRight(s"$alg is not supported")
-  }
-  implicit val hmacAlgDecoder: Decoder[HMac.Algorithm] = Decoder[String].emap { alg =>
-    HMac.Algorithm.values.find(_.jose == alg).toRight(s"$alg is not supported")
-  }
+  implicit val uriDecoder: Codec[URI] = Codec.from(Decoder[String].map(URI.create), Encoder[String].contramap(_.toString))
+  implicit val BigIntBigEndianDecoder: Codec[BigInteger] =
+    Codec.from(
+      Decoder[ByteVector].map(n => BigInt(1, n.toArray).bigInteger),
+      Encoder[ByteVector].contramap(bi => ByteVector.apply(bi.toByteArray))
+    )
+  implicit val rsaAlgDecoder: Codec[RSA.Algorithm] = Codec.from(
+    Decoder[String].emap { alg =>
+      RSA.Algorithm.values.find(_.jose == alg).toRight(s"$alg is not supported")
+    },
+    Encoder[String].contramap(_.jose)
+  )
+  implicit val hmacAlgDecoder: Codec[HMac.Algorithm] =
+    Codec.from(Decoder[String].emap { alg =>
+      HMac.Algorithm.values.find(_.jose == alg).toRight(s"$alg is not supported")
+    }, Encoder[String].contramap(_.jose))
 
   def tryDecode[A](c: HCursor, tried: Try[A]): Decoder.Result[A] =
     tried.toEither.leftMap(e => DecodingFailure.fromThrowable(e, c.history))
@@ -49,9 +52,15 @@ object circe {
     case e     => Use.Extension(e)
   }
 
-  implicit val curveDecoder: Decoder[EllipticCurve.Curve] = Decoder[String].emap { alg =>
-    EllipticCurve.Curve.values.find(_.jose == alg).toRight(s"$alg is not supported")
+  implicit val useEncoder: Encoder[Use] = Encoder[String].contramap {
+    case Use.Signature      => "sig"
+    case Use.Encryption     => "enc"
+    case Use.Extension(ext) => ext
   }
+
+  implicit val curveDecoder: Codec[EllipticCurve.Curve] = Codec.from(Decoder[String].emap { alg =>
+    EllipticCurve.Curve.values.find(_.jose == alg).toRight(s"$alg is not supported")
+  }, Encoder[String].contramap(_.jose))
 
   implicit val x509CertificateDecoder: Decoder[X509Certificate] =
     Decoder[ByteVector].emapTry { s =>
@@ -60,6 +69,9 @@ object circe {
         factory.generateCertificate(new ByteArrayInputStream(s.toArray)).asInstanceOf[X509Certificate]
       }
     }
+  implicit val x509CertificateEncoder: Encoder[X509Certificate] = {
+    Encoder[String].contramap(c => ByteVector(c.getEncoded).toBase64)
+  }
 
   implicit val x509Decoder: Decoder[Option[X509]] = Decoder.instance { c =>
     for {
@@ -72,7 +84,22 @@ object circe {
     }
   }
 
-  private def rsa(c: HCursor): Decoder.Result[(RSAPublicKey, Option[RSAPrivateKey])] = {
+  implicit val x509Encoder: Encoder[X509] = Encoder.instance {
+    case X509Chain(x5c, sha1, sha256) =>
+      Json.obj(
+        "x5c" := x5c,
+        "x5t" := sha1,
+        "x5t#S256" := sha256
+      )
+    case X509Url(url, sha1, sha256) =>
+      Json.obj(
+        "x5u" := url,
+        "x5t" := sha1,
+        "x5t#S256" := sha256
+      )
+  }
+
+  private def rsa(c: HCursor): Decoder.Result[(RSAPublicKey, Option[RSAPrivateCrtKey])] = {
     for {
       n       <- c.downField("n").as[BigInteger]
       e       <- c.downField("e").as[BigInteger]
@@ -89,7 +116,7 @@ object circe {
                Try {
                  (Some(n), Some(e), d, p, q, dp, dq, qi)
                    .mapN(new RSAPrivateCrtKeySpec(_, _, _, _, _, _, _, _))
-                   .map(factory.generatePrivate(_).asInstanceOf[RSAPrivateKey])
+                   .map(factory.generatePrivate(_).asInstanceOf[RSAPrivateCrtKey])
                }
              )
     } yield (public, priv)
@@ -104,6 +131,29 @@ object circe {
       rsa  <- rsa(c)
       x509 <- x509Decoder(c)
     } yield RSA(id, alg, rsa._1, rsa._2, use, x509)
+  }
+
+  implicit val rsaEncoder: Encoder[RSA] = Encoder.instance{ rsa =>
+    val base = Json.obj(
+      "kty" := "RSA",
+      "kid" := rsa.id.value,
+      "alg" := rsa.alg,
+      "use" := rsa.use,
+      "n" := rsa.publicKey.getModulus,
+      "e" := rsa.publicKey.getPublicExponent,
+    )
+
+    val privateKey = rsa.privateKey.map(priv =>
+      Json.obj(
+        "d" := priv.getPrivateExponent,
+        "p" := priv.getPrimeP,
+        "q" := priv.getPrimeQ,
+        "dp" := priv.getPrimeExponentP,
+        "dq" := priv.getPrimeExponentQ,
+        "qi" := priv.getCrtCoefficient,
+      )
+    ).getOrElse(Json.obj())
+    privateKey.deepMerge(base)
   }
 
   implicit val ecDecoder: Decoder[EllipticCurve] = Decoder.instance { c =>

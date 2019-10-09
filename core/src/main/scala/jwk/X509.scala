@@ -5,7 +5,7 @@ import java.security.cert.X509Certificate
 
 import scodec.bits.ByteVector
 
-trait X509 {
+sealed trait X509 {
   def sha1: Option[ByteVector]
   def sha256: Option[ByteVector]
 }

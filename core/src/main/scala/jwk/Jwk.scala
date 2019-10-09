@@ -32,7 +32,7 @@ object Jwk {
       id: Id,
       alg: Option[RSA.Algorithm],
       publicKey: RSAPublicKey,
-      privateKey: Option[RSAPrivateKey],
+      privateKey: Option[RSAPrivateCrtKey],
       use: Option[Use],
       x509: Option[X509]
   ) extends Jwk

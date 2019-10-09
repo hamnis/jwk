@@ -98,6 +98,8 @@ class JwkTest extends FunSuite {
   }
 
   test("RSA Private key from Nimbus JOSE Website") {
+    import io.circe.syntax._
+
     val json =
       """{
         |  "kty" : "RSA",
@@ -116,8 +118,12 @@ class JwkTest extends FunSuite {
 
     val value = decode[Jwk.RSA](json)
     assert(value.isRight)
-    assert(value.right.get.privateKey.isDefined)
-    assert(JwkValidator.validate(value.right.get).isRight)
+    val decoded = value.right.get
+    assert(decoded.privateKey.isDefined)
+    assert(JwkValidator.validate(decoded).isRight)
+    val value2 = decoded.asJson.as[Jwk.RSA]
+    assert(value2.isRight)
+    assert(decoded == value2.right.get)
   }
 
   test("EC Private Key from Nimbus JOSE Website") {
