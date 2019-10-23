@@ -6,7 +6,15 @@ import java.net.URI
 import java.security.{AlgorithmParameters, KeyFactory}
 import java.security.cert.{CertificateFactory, X509Certificate}
 import java.security.interfaces.{ECPrivateKey, ECPublicKey, RSAPrivateCrtKey, RSAPrivateKey, RSAPublicKey}
-import java.security.spec.{ECGenParameterSpec, ECParameterSpec, ECPoint, ECPrivateKeySpec, ECPublicKeySpec, RSAPrivateCrtKeySpec, RSAPublicKeySpec}
+import java.security.spec.{
+  ECGenParameterSpec,
+  ECParameterSpec,
+  ECPoint,
+  ECPrivateKeySpec,
+  ECPublicKeySpec,
+  RSAPrivateCrtKeySpec,
+  RSAPublicKeySpec
+}
 
 import io.circe._
 import io.circe.syntax._
@@ -133,27 +141,47 @@ object circe {
     } yield RSA(id, alg, rsa._1, rsa._2, use, x509)
   }
 
-  implicit val rsaEncoder: Encoder[RSA] = Encoder.instance{ rsa =>
+  implicit val rsaEncoder: Encoder[RSA] = Encoder.instance { rsa =>
     val base = Json.obj(
       "kty" := "RSA",
       "kid" := rsa.id.value,
       "alg" := rsa.alg,
       "use" := rsa.use,
       "n" := rsa.publicKey.getModulus,
-      "e" := rsa.publicKey.getPublicExponent,
+      "e" := rsa.publicKey.getPublicExponent
     )
 
-    val privateKey = rsa.privateKey.map(priv =>
-      Json.obj(
-        "d" := priv.getPrivateExponent,
-        "p" := priv.getPrimeP,
-        "q" := priv.getPrimeQ,
-        "dp" := priv.getPrimeExponentP,
-        "dq" := priv.getPrimeExponentQ,
-        "qi" := priv.getCrtCoefficient,
+    val privateKey = rsa.privateKey
+      .map(
+        priv =>
+          Json.obj(
+            "d" := priv.getPrivateExponent,
+            "p" := priv.getPrimeP,
+            "q" := priv.getPrimeQ,
+            "dp" := priv.getPrimeExponentP,
+            "dq" := priv.getPrimeExponentQ,
+            "qi" := priv.getCrtCoefficient
+          )
       )
-    ).getOrElse(Json.obj())
-    privateKey.deepMerge(base)
+      .getOrElse(Json.obj())
+
+    val x509 = rsa.x509.asJson
+
+    x509.deepMerge(privateKey.deepMerge(base))
+  }
+
+  implicit val ecEncoder: Encoder[EllipticCurve] = Encoder.instance { ec =>
+    val base = Json.obj(
+      "kty" := "EC",
+      "kid" := ec.id.value,
+      "crv" := ec.curve.jose,
+      "use" := ec.use,
+      "x" := ec.publicKey.getW.getAffineX,
+      "y" := ec.publicKey.getW.getAffineY,
+      "d" := ec.privateKey.map(_.getS)
+    )
+    val x509 = ec.x509.asJson
+    x509.deepMerge(base)
   }
 
   implicit val ecDecoder: Decoder[EllipticCurve] = Decoder.instance { c =>
@@ -197,9 +225,31 @@ object circe {
     } yield HMac(id, alg, decodedKey, use)
   }
 
+  implicit val hmacEncoder: Encoder[HMac] = Encoder.instance { hmac =>
+    Json.obj(
+      "kty" := "oct",
+      "kid" := hmac.id.value,
+      "alg" := hmac.algorithm.jose,
+      "use" := hmac.use,
+      "k" := ByteVector(hmac.key.getEncoded)
+    )
+  }
+
   implicit val jwkDecoder: Decoder[Jwk] = {
     rsaDecoder.widen[Jwk].or(ecDecoder.widen[Jwk]).or(hmacDecoder.widen[Jwk])
   }
 
+  implicit val jwkEncoder: Encoder[Jwk] = Encoder.instance {
+    case rsa: RSA          => rsa.asJson
+    case ec: EllipticCurve => ec.asJson
+    case hmac: HMac        => hmac.asJson
+  }
+
   implicit val jwkSetDecoder: Decoder[JwkSet] = Decoder.instance(c => c.downField("keys").as[Set[Jwk]].map(JwkSet))
+  implicit val jwkSetEncoder: Encoder[JwkSet] = Encoder.instance(
+    set =>
+      Json.obj(
+        "keys" := set.keys.asJson
+      )
+  )
 }

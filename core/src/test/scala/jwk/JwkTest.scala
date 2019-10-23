@@ -2,6 +2,7 @@ package jwk
 
 import org.scalatest._
 import io.circe.jawn._
+import io.circe.syntax._
 import jwk.circe._
 
 class JwkTest extends FunSuite {
@@ -51,6 +52,10 @@ class JwkTest extends FunSuite {
     val value = decode[Jwk.RSA](json)
     assert(value.isRight)
     assert(JwkValidator.validate(value.right.get).isRight)
+    val viaJson = value.right.get.asJson.as[Jwk.RSA]
+    assert(viaJson.isRight)
+    assert(JwkValidator.validate(viaJson.right.get).isRight)
+    assert(viaJson.right.get === value.right.get)
   }
 
   test("From auth0 should parse") {
@@ -142,6 +147,28 @@ class JwkTest extends FunSuite {
     assert(value.isRight)
     assert(value.right.get.privateKey.isDefined)
   }
+
+  test("Serialized should be the same as from string") {
+    val json =
+      """
+        |{
+        |  "kty" : "EC",
+        |  "kid" : "f0ce6d0a-e9d3-4d6d-a2b3-ee539b74cb9f",
+        |  "crv" : "P-256",
+        |  "x"   : "SVqB4JcUD6lsfvqMr-OKUNUphdNn64Eay60978ZlL74",
+        |  "y"   : "lf0u0pMj4lGAzZix5u4Cm5CMQIgMNpkwy163wtKYVKI",
+        |  "d"   : "0g5vAEKzugrXaRbgKG0Tj2qJ5lMP4Bezds1_sTybkfk"
+        |}
+        |""".stripMargin
+    val value = decode[Jwk.EllipticCurve](json)
+    assert(value.isRight)
+    assert(value.right.get.privateKey.isDefined)
+    val viaJson = value.right.get.asJson.as[Jwk.EllipticCurve]
+    assert(viaJson.isRight)
+    assert(viaJson.right.get.privateKey.isDefined)
+    assert(viaJson.right.get === value.right.get)
+  }
+
   test("HMac256 from Nimbus JOSE Website") {
     val json =
       """
@@ -154,7 +181,6 @@ class JwkTest extends FunSuite {
         |""".stripMargin
 
     val value = decode[Jwk.HMac](json)
-    println(value)
     assert(value.isRight)
   }
 }
