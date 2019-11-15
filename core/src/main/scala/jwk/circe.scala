@@ -5,7 +5,7 @@ import java.math.BigInteger
 import java.net.URI
 import java.security.{AlgorithmParameters, KeyFactory}
 import java.security.cert.{CertificateFactory, X509Certificate}
-import java.security.interfaces.{ECPrivateKey, ECPublicKey, RSAPrivateCrtKey, RSAPrivateKey, RSAPublicKey}
+import java.security.interfaces.{ECPrivateKey, ECPublicKey, RSAPrivateCrtKey, RSAPublicKey}
 import java.security.spec.{
   ECGenParameterSpec,
   ECParameterSpec,
@@ -65,6 +65,11 @@ object circe {
     case Use.Encryption     => "enc"
     case Use.Extension(ext) => ext
   }
+
+  implicit val keyOpCodec: Codec[KeyOp] = Codec.from(
+    Decoder[String].map(KeyOp.apply),
+    Encoder[String].contramap(_.value)
+  )
 
   implicit val curveDecoder: Codec[EllipticCurve.Curve] = Codec.from(Decoder[String].emap { alg =>
     EllipticCurve.Curve.values.find(_.jose == alg).toRight(s"$alg is not supported")
@@ -132,13 +137,14 @@ object circe {
 
   implicit val rsaDecoder: Decoder[RSA] = Decoder.instance { c =>
     for {
-      _    <- c.downField("kty").as(Decoder.decodeString.ensure(_ == "RSA", "Not an RSA key type"))
-      id   <- c.downField("kid").as[String].map(Id)
-      alg  <- c.downField("alg").as[Option[RSA.Algorithm]]
-      use  <- c.downField("use").as[Option[Use]]
-      rsa  <- rsa(c)
-      x509 <- x509Decoder(c)
-    } yield RSA(id, alg, rsa._1, rsa._2, use, x509)
+      _      <- c.downField("kty").as(Decoder.decodeString.ensure(_ == "RSA", "Not an RSA key type"))
+      id     <- c.downField("kid").as[String].map(Id)
+      alg    <- c.downField("alg").as[Option[RSA.Algorithm]]
+      use    <- c.downField("use").as[Option[Use]]
+      keyOps <- c.downField("key_ops").as[Option[KeyOp]]
+      rsa    <- rsa(c)
+      x509   <- x509Decoder(c)
+    } yield RSA(id, alg, rsa._1, rsa._2, use, x509, keyOps)
   }
 
   implicit val rsaEncoder: Encoder[RSA] = Encoder.instance { rsa =>
@@ -147,6 +153,7 @@ object circe {
       "kid" := rsa.id.value,
       "alg" := rsa.alg,
       "use" := rsa.use,
+      "key_ops" := rsa.keyOps,
       "n" := rsa.publicKey.getModulus,
       "e" := rsa.publicKey.getPublicExponent
     )
@@ -176,6 +183,7 @@ object circe {
       "kid" := ec.id.value,
       "crv" := ec.curve.jose,
       "use" := ec.use,
+      "key_ops" := ec.keyOps,
       "x" := ec.publicKey.getW.getAffineX,
       "y" := ec.publicKey.getW.getAffineY,
       "d" := ec.privateKey.map(_.getS)
@@ -186,13 +194,14 @@ object circe {
 
   implicit val ecDecoder: Decoder[EllipticCurve] = Decoder.instance { c =>
     for {
-      _     <- c.downField("kty").as(Decoder.decodeString.ensure(_ == "EC", "Not an EC key type"))
-      id    <- c.downField("kid").as[String].map(Id)
-      curve <- c.downField("crv").as[EllipticCurve.Curve]
-      use   <- c.downField("use").as[Option[Use]]
-      ec    <- ec(c, curve)
-      x509  <- x509Decoder(c)
-    } yield EllipticCurve(id, curve, ec._1, ec._2, use, x509)
+      _      <- c.downField("kty").as(Decoder.decodeString.ensure(_ == "EC", "Not an EC key type"))
+      id     <- c.downField("kid").as[String].map(Id)
+      curve  <- c.downField("crv").as[EllipticCurve.Curve]
+      use    <- c.downField("use").as[Option[Use]]
+      keyOps <- c.downField("key_ops").as[Option[KeyOp]]
+      ec     <- ec(c, curve)
+      x509   <- x509Decoder(c)
+    } yield EllipticCurve(id, curve, ec._1, ec._2, use, x509, keyOps)
   }
 
   def ec(c: HCursor, curve: EllipticCurve.Curve): Decoder.Result[(ECPublicKey, Option[ECPrivateKey])] = {
@@ -221,8 +230,9 @@ object circe {
       alg        <- c.downField("alg").as[HMac.Algorithm]
       use        <- c.downField("use").as[Option[Use]]
       key        <- c.downField("k").as[ByteVector]
+      keyOps     <- c.downField("key_ops").as[Option[KeyOp]]
       decodedKey <- tryDecode(c, Try { new SecretKeySpec(key.toArray, alg.jce) })
-    } yield HMac(id, alg, decodedKey, use)
+    } yield HMac(id, alg, decodedKey, use, keyOps)
   }
 
   implicit val hmacEncoder: Encoder[HMac] = Encoder.instance { hmac =>
@@ -231,6 +241,7 @@ object circe {
       "kid" := hmac.id.value,
       "alg" := hmac.algorithm.jose,
       "use" := hmac.use,
+      "key_ops" := hmac.keyOps,
       "k" := ByteVector(hmac.key.getEncoded)
     )
   }

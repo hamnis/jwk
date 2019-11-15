@@ -23,6 +23,7 @@ case class JwkSet(keys: Set[Jwk]) {
 sealed trait Jwk extends Product with Serializable {
   def id: Jwk.Id
   def use: Option[Use]
+  def keyOps: Option[KeyOp]
 }
 
 object Jwk {
@@ -34,7 +35,8 @@ object Jwk {
       publicKey: RSAPublicKey,
       privateKey: Option[RSAPrivateCrtKey],
       use: Option[Use],
-      x509: Option[X509]
+      x509: Option[X509],
+      keyOps: Option[KeyOp]
   ) extends Jwk
 
   object RSA {
@@ -54,7 +56,8 @@ object Jwk {
       publicKey: ECPublicKey,
       privateKey: Option[ECPrivateKey],
       use: Option[Use],
-      x509: Option[X509]
+      x509: Option[X509],
+      keyOps: Option[KeyOp]
   ) extends Jwk
 
   object EllipticCurve {
@@ -69,7 +72,7 @@ object Jwk {
     }
   }
 
-  case class HMac(id: Jwk.Id, algorithm: HMac.Algorithm, key: SecretKey, use: Option[Use]) extends Jwk
+  case class HMac(id: Jwk.Id, algorithm: HMac.Algorithm, key: SecretKey, use: Option[Use], keyOps: Option[KeyOp]) extends Jwk
   object HMac {
     sealed abstract class Algorithm(val jose: String, val jce: String) extends Product with Serializable
 
@@ -89,17 +92,3 @@ object Use {
   final case object Encryption             extends Use
   final case class Extension(name: String) extends Use
 }
-
-/*sealed trait KeyOps extends Product with Serializable
-
-object KeyOps {
-  final case object Sign               extends KeyOps
-  final case object Verify             extends KeyOps
-  final case object Encrypt            extends KeyOps
-  final case object Decrypt            extends KeyOps
-  final case object WrapKey            extends KeyOps
-  final case object UnwrapKey          extends KeyOps
-  final case object DeriveKey          extends KeyOps
-  final case object DeriveBits         extends KeyOps
-  final case class Other(name: String) extends KeyOps
-}*/
