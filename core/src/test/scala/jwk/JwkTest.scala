@@ -51,10 +51,10 @@ class JwkTest extends FunSuite {
 
     val value = decode[Jwk.RSA](json)
     assert(value.isRight)
-    assert(JwkValidator.validate(value.right.get).isRight)
+    assert(JwkParser.validate(value.right.get).isRight)
     val viaJson = value.right.get.asJson.as[Jwk.RSA]
     assert(viaJson.isRight)
-    assert(JwkValidator.validate(viaJson.right.get).isRight)
+    assert(JwkParser.validate(viaJson.right.get).isRight)
     assert(viaJson.right.get === value.right.get)
   }
 
@@ -77,7 +77,7 @@ class JwkTest extends FunSuite {
 
     val value = decode[Jwk.RSA](json)
     assert(value.isRight)
-    assert(JwkValidator.validate(value.right.get).isLeft)
+    assert(JwkParser.validate(value.right.get).isLeft)
   }
 
   test("RSA Private key from RFC") {
@@ -99,7 +99,7 @@ class JwkTest extends FunSuite {
     val value = decode[Jwk.RSA](json)
     assert(value.isRight)
     assert(value.right.get.privateKey.isDefined)
-    assert(JwkValidator.validate(value.right.get).isRight)
+    assert(JwkParser.validate(value.right.get).isRight)
   }
 
   test("RSA Private key from Nimbus JOSE Website") {
@@ -121,12 +121,11 @@ class JwkTest extends FunSuite {
         |}
         |""".stripMargin
 
-    val value = decode[Jwk.RSA](json)
+    val value = JwkParser.parse(json)
     assert(value.isRight)
-    val decoded = value.right.get
+    val decoded = value.right.get.asInstanceOf[Jwk.RSA]
     assert(decoded.privateKey.isDefined)
-    assert(JwkValidator.validate(decoded).isRight)
-    val value2 = decoded.asJson.as[Jwk.RSA]
+    val value2 = JwkParser.parse(decoded.asJson.noSpaces)
     assert(value2.isRight)
     assert(decoded == value2.right.get)
   }
