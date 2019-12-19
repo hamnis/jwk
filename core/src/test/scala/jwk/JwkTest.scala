@@ -1,11 +1,11 @@
 package jwk
 
-import org.scalatest._
 import io.circe.jawn._
 import io.circe.syntax._
 import jwk.circe._
+import org.scalatest.funsuite.AnyFunSuite
 
-class JwkTest extends FunSuite {
+class JwkTest extends AnyFunSuite {
   test("rsa key from RFC") {
     val json =
       """
