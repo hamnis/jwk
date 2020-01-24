@@ -137,14 +137,14 @@ object circe {
 
   implicit val rsaDecoder: Decoder[RSA] = Decoder.instance { c =>
     for {
-      _      <- c.downField("kty").as(Decoder.decodeString.ensure(_ == "RSA", "Not an RSA key type"))
-      id     <- c.downField("kid").as[String].map(Id)
-      alg    <- c.downField("alg").as[Option[RSA.Algorithm]]
-      use    <- c.downField("use").as[Option[Use]]
-      keyOps <- c.downField("key_ops").as[Option[KeyOp]]
-      rsa    <- rsa(c)
-      x509   <- x509Decoder(c)
-    } yield RSA(id, alg, rsa._1, rsa._2, use, x509, keyOps)
+      _           <- c.downField("kty").as(Decoder.decodeString.ensure(_ == "RSA", "Not an RSA key type"))
+      id          <- c.downField("kid").as[String].map(Id)
+      alg         <- c.downField("alg").as[Option[RSA.Algorithm]]
+      use         <- c.downField("use").as[Option[Use]]
+      keyOps      <- c.downField("key_ops").as[Option[KeyOp]]
+      (pub, priv) <- rsa(c)
+      x509        <- x509Decoder(c)
+    } yield RSA(id, alg, pub, priv, use, x509, keyOps)
   }
 
   implicit val rsaEncoder: Encoder[RSA] = Encoder.instance { rsa =>
@@ -209,7 +209,7 @@ object circe {
       x     <- c.downField("x").as[BigInteger]
       y     <- c.downField("y").as[BigInteger]
       d     <- c.downField("d").as[Option[BigInteger]]
-      point = new ECPoint(x, y)
+      point <- tryDecode(c, Try { new ECPoint(x, y) })
       kf    <- tryDecode(c, Try { KeyFactory.getInstance("EC") })
       spec <- tryDecode(c, Try {
                val params = AlgorithmParameters.getInstance("EC")

@@ -49,13 +49,11 @@ class JwkTest extends AnyFunSuite {
       |}
       |""".stripMargin
 
-    val value = decode[Jwk.RSA](json)
-    assert(value.isRight)
-    assert(JwkParser.validate(value.right.get).isRight)
-    val viaJson = value.right.get.asJson.as[Jwk.RSA]
-    assert(viaJson.isRight)
-    assert(JwkParser.validate(viaJson.right.get).isRight)
-    assert(viaJson.right.get === value.right.get)
+    val Right(value) = decode[Jwk.RSA](json)
+    assert(JwkParser.validate(value).isRight)
+    val Right(viaJson) = value.asJson.as[Jwk.RSA]
+    assert(JwkParser.validate(viaJson).isRight)
+    assert(viaJson === value)
   }
 
   test("From auth0 should parse") {
@@ -75,9 +73,8 @@ class JwkTest extends AnyFunSuite {
         |}
         |""".stripMargin
 
-    val value = decode[Jwk.RSA](json)
-    assert(value.isRight)
-    assert(JwkParser.validate(value.right.get).isLeft)
+    val Right(value) = decode[Jwk.RSA](json)
+    assert(JwkParser.validate(value).isLeft)
   }
 
   test("RSA Private key from RFC") {
@@ -96,10 +93,9 @@ class JwkTest extends AnyFunSuite {
       | "kid":"2011-04-29"
       |}
       |""".stripMargin
-    val value = decode[Jwk.RSA](json)
-    assert(value.isRight)
-    assert(value.right.get.privateKey.isDefined)
-    assert(JwkParser.validate(value.right.get).isRight)
+    val Right(value) = decode[Jwk.RSA](json)
+    assert(value.privateKey.isDefined)
+    assert(JwkParser.validate(value).isRight)
   }
 
   test("RSA Private key from Nimbus JOSE Website") {
@@ -121,13 +117,11 @@ class JwkTest extends AnyFunSuite {
         |}
         |""".stripMargin
 
-    val value = JwkParser.parse(json)
-    assert(value.isRight)
-    val decoded = value.right.get.asInstanceOf[Jwk.RSA]
+    val Right(value) = JwkParser.parse(json)
+    val decoded      = value.asInstanceOf[Jwk.RSA]
     assert(decoded.privateKey.isDefined)
-    val value2 = JwkParser.parse(decoded.asJson.noSpaces)
-    assert(value2.isRight)
-    assert(decoded == value2.right.get)
+    val Right(value2) = JwkParser.parse(decoded.asJson.noSpaces)
+    assert(decoded == value2)
   }
 
   test("EC Private Key from Nimbus JOSE Website") {
@@ -142,9 +136,8 @@ class JwkTest extends AnyFunSuite {
         |  "d"   : "0g5vAEKzugrXaRbgKG0Tj2qJ5lMP4Bezds1_sTybkfk"
         |}
         |""".stripMargin
-    val value = decode[Jwk.EllipticCurve](json)
-    assert(value.isRight)
-    assert(value.right.get.privateKey.isDefined)
+    val Right(value) = decode[Jwk.EllipticCurve](json)
+    assert(value.privateKey.isDefined)
   }
 
   test("Serialized should be the same as from string") {
@@ -159,13 +152,11 @@ class JwkTest extends AnyFunSuite {
         |  "d"   : "0g5vAEKzugrXaRbgKG0Tj2qJ5lMP4Bezds1_sTybkfk"
         |}
         |""".stripMargin
-    val value = decode[Jwk.EllipticCurve](json)
-    assert(value.isRight)
-    assert(value.right.get.privateKey.isDefined)
-    val viaJson = value.right.get.asJson.as[Jwk.EllipticCurve]
-    assert(viaJson.isRight)
-    assert(viaJson.right.get.privateKey.isDefined)
-    assert(viaJson.right.get === value.right.get)
+    val Right(value) = decode[Jwk.EllipticCurve](json)
+    assert(value.privateKey.isDefined)
+    val Right(viaJson) = value.asJson.as[Jwk.EllipticCurve]
+    assert(viaJson.privateKey.isDefined)
+    assert(viaJson === value)
   }
 
   test("HMac256 from Nimbus JOSE Website") {
