@@ -3,7 +3,6 @@ package jwk
 import java.security.PublicKey
 
 import cats.data.NonEmptyList
-import jwk.internal.ByteEquality
 import scodec.bits.ByteVector
 import cats.implicits._
 import io.circe.jawn
