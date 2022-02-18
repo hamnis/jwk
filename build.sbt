@@ -25,6 +25,8 @@ lazy val commonSettings = Seq(
   pomIncludeRepository := { _ =>
     false
   },
+  homepage := Some(url("https://github.com/hamnis/jwk")),
+  startYear := Some(2019),
   licenses += License.Apache2,
   scmInfo := Some(
     ScmInfo(
