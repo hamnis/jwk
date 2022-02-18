@@ -138,11 +138,12 @@ object circe {
   implicit val rsaDecoder: Decoder[RSA] = Decoder.instance { c =>
     for {
       _           <- c.downField("kty").as(Decoder.decodeString.ensure(_ == "RSA", "Not an RSA key type"))
-      id          <- c.downField("kid").as[String].map(Id)
+      id          <- c.downField("kid").as[String].map(Id.apply)
       alg         <- c.downField("alg").as[Option[RSA.Algorithm]]
       use         <- c.downField("use").as[Option[Use]]
       keyOps      <- c.downField("key_ops").as[Option[KeyOp]]
-      (pub, priv) <- rsa(c)
+      rsaTuple    <- rsa(c)
+      (pub, priv) = rsaTuple
       x509        <- x509Decoder(c)
     } yield RSA(id, alg, pub, priv, use, x509, keyOps)
   }
@@ -195,7 +196,7 @@ object circe {
   implicit val ecDecoder: Decoder[EllipticCurve] = Decoder.instance { c =>
     for {
       _      <- c.downField("kty").as(Decoder.decodeString.ensure(_ == "EC", "Not an EC key type"))
-      id     <- c.downField("kid").as[String].map(Id)
+      id     <- c.downField("kid").as[String].map(Id.apply)
       curve  <- c.downField("crv").as[EllipticCurve.Curve]
       use    <- c.downField("use").as[Option[Use]]
       keyOps <- c.downField("key_ops").as[Option[KeyOp]]
@@ -226,7 +227,7 @@ object circe {
   implicit val hmacDecoder: Decoder[HMac] = Decoder.instance { c =>
     for {
       _          <- c.downField("kty").as(Decoder.decodeString.ensure(_ == "oct", "Not an 'oct' key type"))
-      id         <- c.downField("kid").as[String].map(Id)
+      id         <- c.downField("kid").as[String].map(Id.apply)
       alg        <- c.downField("alg").as[HMac.Algorithm]
       use        <- c.downField("use").as[Option[Use]]
       key        <- c.downField("k").as[ByteVector]
@@ -256,7 +257,7 @@ object circe {
     case hmac: HMac        => hmac.asJson
   }
 
-  implicit val jwkSetDecoder: Decoder[JwkSet] = Decoder.instance(c => c.downField("keys").as[Set[Jwk]].map(JwkSet))
+  implicit val jwkSetDecoder: Decoder[JwkSet] = Decoder.instance(c => c.downField("keys").as[Set[Jwk]].map(JwkSet.apply))
   implicit val jwkSetEncoder: Encoder[JwkSet] = Encoder.instance(
     set =>
       Json.obj(

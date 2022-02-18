@@ -31,7 +31,7 @@ object JwkParser {
     val valid =
       jawn.decode[JwkSet](input).leftMap(DecodeError("Unable to decode JWKSet", _))
 
-    valid.flatMap(set => set.keys.toList.traverse(validate(_).toValidatedNel).toEither.leftMap(ParseErrors).as(set))
+    valid.flatMap(set => set.keys.toList.traverse(validate(_).toValidatedNel).toEither.leftMap(ParseErrors.apply).as(set))
   }
 
   def parseAuth0Set(input: String): Result[JwkSet] = {

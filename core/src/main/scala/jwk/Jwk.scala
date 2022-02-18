@@ -43,9 +43,9 @@ object Jwk {
     sealed abstract class Algorithm(val jose: String) extends Product with Serializable
 
     object Algorithm {
-      final case object RS256 extends Algorithm("RS256")
-      final case object RS384 extends Algorithm("RS384")
-      final case object RS512 extends Algorithm("RS512")
+      case object RS256 extends Algorithm("RS256")
+      case object RS384 extends Algorithm("RS384")
+      case object RS512 extends Algorithm("RS512")
       val values: Set[Algorithm] = Set(RS256, RS384, RS512)
     }
   }
@@ -64,9 +64,9 @@ object Jwk {
     sealed abstract class Curve(val jose: String, val jce: String) extends Product with Serializable
 
     object Curve {
-      final case object P256 extends Curve("P-256", "secp256r1")
-      final case object P384 extends Curve("P-384", "secp384r1")
-      final case object P512 extends Curve("P-512", "secp512r1")
+      case object P256 extends Curve("P-256", "secp256r1")
+      case object P384 extends Curve("P-384", "secp384r1")
+      case object P512 extends Curve("P-512", "secp512r1")
 
       val values: Set[Curve] = Set(P256, P384, P512)
     }
@@ -77,9 +77,9 @@ object Jwk {
     sealed abstract class Algorithm(val jose: String, val jce: String) extends Product with Serializable
 
     object Algorithm {
-      final case object HS256 extends Algorithm("HS256", "HmacSha256")
-      final case object HS384 extends Algorithm("HS384", "HmacSha384")
-      final case object HS512 extends Algorithm("HS512", "HmacSha512")
+      case object HS256 extends Algorithm("HS256", "HmacSha256")
+      case object HS384 extends Algorithm("HS384", "HmacSha384")
+      case object HS512 extends Algorithm("HS512", "HmacSha512")
       val values: Set[Algorithm] = Set(HS256, HS384, HS512)
     }
   }
@@ -88,7 +88,7 @@ object Jwk {
 sealed trait Use extends Product with Serializable
 
 object Use {
-  final case object Signature              extends Use
-  final case object Encryption             extends Use
-  final case class Extension(name: String) extends Use
+  case object Signature              extends Use
+  case object Encryption             extends Use
+  case class Extension(name: String) extends Use
 }
