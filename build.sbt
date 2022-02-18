@@ -1,6 +1,4 @@
-import aether.AetherKeys._
-
-lazy val commonSettings = overridePublishSignedSettings ++ Seq(
+lazy val commonSettings = Seq(
   organization       := "net.hamnaberg.jwk",
   crossScalaVersions := Seq("2.13.8", "3.1.1"),
   scalaVersion       := crossScalaVersions.value.head,
@@ -27,6 +25,7 @@ lazy val commonSettings = overridePublishSignedSettings ++ Seq(
   pomIncludeRepository := { _ =>
     false
   },
+  licenses += License.Apache2,
   scmInfo := Some(
     ScmInfo(
       new URL("https://github.com/hamnis/jwk"),
