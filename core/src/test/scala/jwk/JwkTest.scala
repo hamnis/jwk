@@ -118,7 +118,7 @@ class JwkTest extends AnyFunSuite {
         |""".stripMargin
 
     val Right(value) = JwkParser.parse(json)
-    val decoded      = value.asInstanceOf[Jwk.RSA]
+    val decoded = value.asInstanceOf[Jwk.RSA]
     assert(decoded.privateKey.isDefined)
     val Right(value2) = JwkParser.parse(decoded.asJson.noSpaces)
     assert(decoded == value2)

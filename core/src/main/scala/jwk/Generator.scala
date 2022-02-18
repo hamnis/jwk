@@ -16,10 +16,10 @@ object Generator {
       for {
         random <- entropy.source
         keypair <- Sync[F].delay {
-                    val gen = KeyPairGenerator.getInstance("RSA")
-                    gen.initialize(keySize, random)
-                    gen.generateKeyPair()
-                  }
+          val gen = KeyPairGenerator.getInstance("RSA")
+          gen.initialize(keySize, random)
+          gen.generateKeyPair()
+        }
       } yield Jwk.RSA(
         id,
         alg,
@@ -27,25 +27,25 @@ object Generator {
         Some(keypair.getPrivate.asInstanceOf[RSAPrivateCrtKey]),
         use,
         None,
-        None
+        None,
       )
   }
 
   object EC {
-    def generate[F[_]: Sync](id: Jwk.Id, curve: Jwk.EllipticCurve.Curve, use: Option[Use] = None)(
-        implicit entropy: Entropy[F]
-    ) = {
+    def generate[F[_]: Sync](id: Jwk.Id, curve: Jwk.EllipticCurve.Curve, use: Option[Use] = None)(implicit
+        entropy: Entropy[F]
+    ) =
       for {
         random <- entropy.source
         keypair <- Sync[F].delay {
-                    val gen = KeyPairGenerator.getInstance("EC")
-                    val alg = AlgorithmParameters.getInstance("EC")
-                    alg.init(new ECGenParameterSpec(curve.jce))
-                    val spec = alg.getParameterSpec(classOf[ECParameterSpec])
-                    gen.initialize(spec, random)
-                    gen.generateKeyPair()
-                  }
-        //cert <- genX509(keypair)
+          val gen = KeyPairGenerator.getInstance("EC")
+          val alg = AlgorithmParameters.getInstance("EC")
+          alg.init(new ECGenParameterSpec(curve.jce))
+          val spec = alg.getParameterSpec(classOf[ECParameterSpec])
+          gen.initialize(spec, random)
+          gen.generateKeyPair()
+        }
+        // cert <- genX509(keypair)
       } yield Jwk.EllipticCurve(
         id,
         curve,
@@ -53,9 +53,8 @@ object Generator {
         Some(keypair.getPrivate.asInstanceOf[ECPrivateKey]),
         use,
         None,
-        None
+        None,
       )
 
-    }
   }
 }

@@ -11,12 +11,12 @@ case class JwkSet(keys: Set[Jwk]) {
   def getRSA(id: Jwk.Id): Option[Jwk.RSA] =
     get(id).flatMap {
       case rsa: Jwk.RSA => Some(rsa)
-      case _            => None
+      case _ => None
     }
   def getEllipticCurve(id: Jwk.Id): Option[Jwk.EllipticCurve] =
     get(id).flatMap {
       case ec: Jwk.EllipticCurve => Some(ec)
-      case _                     => None
+      case _ => None
     }
 }
 
@@ -36,7 +36,7 @@ object Jwk {
       privateKey: Option[RSAPrivateCrtKey],
       use: Option[Use],
       x509: Option[X509],
-      keyOps: Option[KeyOp]
+      keyOps: Option[KeyOp],
   ) extends Jwk
 
   object RSA {
@@ -57,7 +57,7 @@ object Jwk {
       privateKey: Option[ECPrivateKey],
       use: Option[Use],
       x509: Option[X509],
-      keyOps: Option[KeyOp]
+      keyOps: Option[KeyOp],
   ) extends Jwk
 
   object EllipticCurve {
@@ -88,7 +88,7 @@ object Jwk {
 sealed trait Use extends Product with Serializable
 
 object Use {
-  case object Signature              extends Use
-  case object Encryption             extends Use
+  case object Signature extends Use
+  case object Encryption extends Use
   case class Extension(name: String) extends Use
 }
